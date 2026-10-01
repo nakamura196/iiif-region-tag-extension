@@ -27,7 +27,8 @@ This extension defines how to read both patterns. **It introduces no new propert
 | The `label` of a tagging body is the tag's key | This extension, §4 | **Extension** |
 | Declaring use of the extension in `@context` | This extension, §2 (context defines no terms) | **Extension** |
 | An Image body (`type: "Image"`) in `body`, with an optional `service` and `homepage` | W3C Web Annotation, Presentation 4.0 | Standard |
-| An Image body is a picture of the region; clients show it with the Annotation, not as its text | This extension, §5 | **Extension** (reading rule only) |
+| `purpose` on a body (`describing`, `linking`, `identifying`) | W3C Web Annotation | Standard |
+| An Image body is shown as an image with the Annotation, not as its text; `describing` shows the place, `linking` is a related resource | This extension, §5 | **Extension** (reading rule only) |
 | `creator` and `created` on an Annotation | W3C Web Annotation | Standard (recommended in §6) |
 
 ## 2. Declaring the extension
@@ -95,24 +96,42 @@ A **keyed tag** is a TextualBody with `purpose` set to `tagging` and a `label`. 
 - A client SHOULD render a tagging body without a `label` as a plain tag showing its `value`.
 - A client MUST NOT treat a tagging body as the descriptive text of the Annotation.
 
-## 5. Images of a region
+## 5. Images in an annotation
 
-Annotators often want to show a picture of the annotated place, such as a historical photograph of a building. The Web Annotation Data Model already allows an Annotation to have several bodies, and a body may be an Image. This extension only says how to read such a body. **It adds no terms.**
+Annotators often attach images to an annotation. An image may show the annotated place itself, such as a historical photograph of a building. It may also be a related resource, such as a comparable object held elsewhere. The Web Annotation Data Model already allows an Annotation to have several bodies, a body may be an Image, and each body may state its `purpose`. This extension only says how to read such bodies. **It adds no terms.**
+
+The relationship between the image and the annotated region is given by the body's `purpose`, using values defined by the Web Annotation Data Model:
+
+| `purpose` of the Image body | Meaning (W3C definition) | Example |
+|---|---|---|
+| `describing`, or none | The image describes the target: it shows the annotated place itself | A photograph of the building at this address |
+| `linking` | A resource related to the target | A comparable relief in another museum |
+
+Other related resources follow the same pattern and need no Image type. For example, a Wikidata entity that identifies what the region depicts is a body with `purpose: "identifying"`, and a Wikipedia article or a bibliographic reference is a body with `purpose: "linking"`.
 
 ```json
 {
   "type": "Annotation",
   "motivation": [ "commenting" ],
   "body": [
-    { "type": "TextualBody", "value": "<p>353 Powell St (fish market)</p>", "format": "text/html", "label": { "ja": [ "スター魚肉店" ] } },
+    { "type": "TextualBody", "value": "<p>A relief of a dog carved on the stele</p>", "format": "text/html", "label": { "en": [ "Relief of a dog" ] } },
     {
       "id": "https://example.org/iiif/photo1/full/max/0/default.jpg",
       "type": "Image",
+      "purpose": "describing",
       "format": "image/jpeg",
-      "label": { "en": [ "Yamake's store, Powell Street (1938)" ] },
+      "label": { "en": [ "Photograph of the relief (1938)" ] },
       "service": [ { "id": "https://example.org/iiif/photo1", "type": "ImageService3", "profile": "level1" } ],
       "homepage": [ { "id": "https://example.org/record/1", "type": "Text", "format": "text/html", "label": { "en": [ "Catalogue record" ] } } ]
-    }
+    },
+    {
+      "id": "https://example.org/images/comparable-relief.jpg",
+      "type": "Image",
+      "purpose": "linking",
+      "format": "image/jpeg",
+      "label": { "en": [ "A comparable dog relief, British Museum" ] }
+    },
+    { "id": "http://www.wikidata.org/entity/Q144", "type": "Dataset", "purpose": "identifying" }
   ],
   "target": { "...": "a Specific Resource as in §3" }
 }
@@ -120,17 +139,19 @@ Annotators often want to show a picture of the annotated place, such as a histor
 
 ### 5.1 Requirements for publishers
 
-- A picture of the region MUST be given as a body with `type` set to `Image` and `id` set to the image URI. It SHOULD NOT be given in `seeAlso`, which Presentation 4.0 defines for machine-readable descriptions, nor by a property that is not defined there, such as `source` on a `seeAlso` item.
-- The body SHOULD have a `label` (language map) that identifies the picture, such as its title and date.
+- An image attached to an annotation MUST be given as a body with `type` set to `Image` and `id` set to the URI of the image itself. It SHOULD NOT be given in `seeAlso`, which Presentation 4.0 defines for machine-readable descriptions, nor by a property that is not defined there, such as `source` on a `seeAlso` item.
+- An Image body that shows the annotated place SHOULD have `purpose` set to `describing`. An Image body that is a related resource MUST have `purpose` set to `linking`.
+- The body SHOULD have a `label` (language map) that identifies the image, such as its title and date.
 - When the image is served by a IIIF Image API service, the body SHOULD carry it in `service`, so that clients can request a thumbnail instead of the full image.
 - The page that describes the image at its holding institution SHOULD be given in `homepage` on the Image body.
 - The descriptive text SHOULD remain the first item of `body` (§4.1).
 
 ### 5.2 Requirements for clients
 
-- A client SHOULD show the Image bodies of an Annotation as pictures together with the Annotation, for example as thumbnails in its list entry.
+- A client SHOULD show the Image bodies of an Annotation as images together with the Annotation, for example as thumbnails in its list entry.
+- A client SHOULD present Image bodies with `purpose: "linking"` apart from those that show the place, for example under a separate heading, so that users do not take a related resource for a picture of the annotated region.
 - A client MUST NOT treat an Image body as the descriptive text or as a tag of the Annotation.
-- A client SHOULD use the image `service`, when present, to request a thumbnail, and SHOULD link the picture to its `homepage`, when present.
+- A client SHOULD use the image `service`, when present, to request a thumbnail, and SHOULD link the image to its `homepage`, when present.
 
 ## 6. Provenance (informative)
 
