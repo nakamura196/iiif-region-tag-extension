@@ -26,7 +26,10 @@ This extension defines how to read both patterns. **It introduces no new propert
 | `label` (language map) on a TextualBody | Presentation 4.0 | Standard |
 | The `label` of a tagging body is the tag's key | This extension, §4 | **Extension** |
 | Declaring use of the extension in `@context` | This extension, §2 (context defines no terms) | **Extension** |
-| `creator` and `created` on an Annotation | W3C Web Annotation | Standard (recommended in §5) |
+| An Image body (`type: "Image"`) in `body`, with an optional `service` and `homepage` | W3C Web Annotation, Presentation 4.0 | Standard |
+| `purpose` on a body (`describing`, `linking`, `identifying`) | W3C Web Annotation | Standard |
+| An Image body is shown as an image with the Annotation, not as its text; `describing` shows the place, `linking` is a related resource | This extension, §5 | **Extension** (reading rule only) |
+| `creator` and `created` on an Annotation | W3C Web Annotation | Standard (recommended in §6) |
 
 ## 2. Declaring the extension
 
@@ -43,7 +46,7 @@ A Manifest that follows this extension SHOULD declare it by adding the context U
 
 The context document defines no terms, because this extension introduces none. Its only role is to mark that the rules below apply.
 
-- A client SHOULD apply §3 and §4 when the context is present.
+- A client SHOULD apply §3, §4 and §5 when the context is present.
 - A client MAY apply them when it is absent, for example to Presentation 3.0 Manifests from a publisher known to follow them. Grouping by `id` is safe even then, because Specific Resources with the same URI are, by definition, the same resource.
 
 ## 3. Shared regions
@@ -93,17 +96,74 @@ A **keyed tag** is a TextualBody with `purpose` set to `tagging` and a `label`. 
 - A client SHOULD render a tagging body without a `label` as a plain tag showing its `value`.
 - A client MUST NOT treat a tagging body as the descriptive text of the Annotation.
 
-## 5. Provenance (informative)
+## 5. Images in an annotation
+
+Annotators often attach images to an annotation. An image may show the annotated place itself, such as a historical photograph of a building. It may also be a related resource, such as a comparable object held elsewhere. The Web Annotation Data Model already allows an Annotation to have several bodies, a body may be an Image, and each body may state its `purpose`. This extension only says how to read such bodies. **It adds no terms.**
+
+The relationship between the image and the annotated region is given by the body's `purpose`, using values defined by the Web Annotation Data Model:
+
+| `purpose` of the Image body | Meaning (W3C definition) | Example |
+|---|---|---|
+| `describing`, or none | The image describes the target: it shows the annotated place itself | A photograph of the building at this address |
+| `linking` | A resource related to the target | A comparable relief in another museum |
+
+Other related resources follow the same pattern and need no Image type. For example, a Wikidata entity that identifies what the region depicts is a body with `purpose: "identifying"`, and a Wikipedia article or a bibliographic reference is a body with `purpose: "linking"`.
+
+```json
+{
+  "type": "Annotation",
+  "motivation": [ "commenting" ],
+  "body": [
+    { "type": "TextualBody", "value": "<p>A relief of a dog carved on the stele</p>", "format": "text/html", "label": { "en": [ "Relief of a dog" ] } },
+    {
+      "id": "https://example.org/iiif/photo1/full/max/0/default.jpg",
+      "type": "Image",
+      "purpose": "describing",
+      "format": "image/jpeg",
+      "label": { "en": [ "Photograph of the relief (1938)" ] },
+      "service": [ { "id": "https://example.org/iiif/photo1", "type": "ImageService3", "profile": "level1" } ],
+      "homepage": [ { "id": "https://example.org/record/1", "type": "Text", "format": "text/html", "label": { "en": [ "Catalogue record" ] } } ]
+    },
+    {
+      "id": "https://example.org/images/comparable-relief.jpg",
+      "type": "Image",
+      "purpose": "linking",
+      "format": "image/jpeg",
+      "label": { "en": [ "A comparable dog relief, British Museum" ] }
+    },
+    { "id": "http://www.wikidata.org/entity/Q144", "type": "Dataset", "purpose": "identifying" }
+  ],
+  "target": { "...": "a Specific Resource as in §3" }
+}
+```
+
+### 5.1 Requirements for publishers
+
+- An image attached to an annotation MUST be given as a body with `type` set to `Image` and `id` set to the URI of the image itself. It SHOULD NOT be given in `seeAlso`, which Presentation 4.0 defines for machine-readable descriptions, nor by a property that is not defined there, such as `source` on a `seeAlso` item.
+- An Image body that shows the annotated place SHOULD have `purpose` set to `describing`. An Image body that is a related resource MUST have `purpose` set to `linking`.
+- The body SHOULD have a `label` (language map) that identifies the image, such as its title and date.
+- When the image is served by a IIIF Image API service, the body SHOULD carry it in `service`, so that clients can request a thumbnail instead of the full image.
+- The page that describes the image at its holding institution SHOULD be given in `homepage` on the Image body.
+- The descriptive text SHOULD remain the first item of `body` (§4.1).
+
+### 5.2 Requirements for clients
+
+- A client SHOULD show the Image bodies of an Annotation as images together with the Annotation, for example as thumbnails in its list entry.
+- A client SHOULD present Image bodies with `purpose: "linking"` apart from those that show the place, for example under a separate heading, so that users do not take a related resource for a picture of the annotated region.
+- A client MUST NOT treat an Image body as the descriptive text or as a tag of the Annotation.
+- A client SHOULD use the image `service`, when present, to request a thumbnail, and SHOULD link the image to its `homepage`, when present.
+
+## 6. Provenance (informative)
 
 When one region collects Annotations from different people or projects, users need to tell them apart. The Web Annotation Data Model already defines `creator` and `created` on an Annotation. Publishers SHOULD use them rather than `metadata`. This extension does not define anything further.
 
-## 6. Compatibility with Presentation 3.0
+## 7. Compatibility with Presentation 3.0
 
 In Presentation 3.0, and in the Web Annotation Data Model, `id` on a Specific Resource is optional. A Presentation 3.0 publisher that wants to use shared regions MUST therefore add `id` to the targets that share a region. All other rules above apply unchanged.
 
 Presentation 3.0 allows `motivation` to be a single string, following the Web Annotation Data Model. Presentation 4.0 requires an array.
 
-## 7. Example
+## 8. Example
 
 See [examples/manifest.json](../examples/manifest.json), a Presentation 4.0 Manifest for a 3D model of a globe. The annotation texts are illustrative. It contains:
 
@@ -111,7 +171,7 @@ See [examples/manifest.json](../examples/manifest.json), a Presentation 4.0 Mani
 - a polygon region given with a `WktSelector`;
 - an Annotation that uses no feature of this extension, which every client shows as usual.
 
-## 8. References
+## 9. References
 
 - IIIF Presentation API 4.0 (4.0.0-draft), Data Model: <https://iiif.io/api/presentation/4.0/model/>
 - IIIF Presentation API 3.0: <https://iiif.io/api/presentation/3.0/>
