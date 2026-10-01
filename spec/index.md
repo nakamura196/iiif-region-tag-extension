@@ -26,7 +26,9 @@ This extension defines how to read both patterns. **It introduces no new propert
 | `label` (language map) on a TextualBody | Presentation 4.0 | Standard |
 | The `label` of a tagging body is the tag's key | This extension, §4 | **Extension** |
 | Declaring use of the extension in `@context` | This extension, §2 (context defines no terms) | **Extension** |
-| `creator` and `created` on an Annotation | W3C Web Annotation | Standard (recommended in §5) |
+| An Image body (`type: "Image"`) in `body`, with an optional `service` and `homepage` | W3C Web Annotation, Presentation 4.0 | Standard |
+| An Image body is a picture of the region; clients show it with the Annotation, not as its text | This extension, §5 | **Extension** (reading rule only) |
+| `creator` and `created` on an Annotation | W3C Web Annotation | Standard (recommended in §6) |
 
 ## 2. Declaring the extension
 
@@ -43,7 +45,7 @@ A Manifest that follows this extension SHOULD declare it by adding the context U
 
 The context document defines no terms, because this extension introduces none. Its only role is to mark that the rules below apply.
 
-- A client SHOULD apply §3 and §4 when the context is present.
+- A client SHOULD apply §3, §4 and §5 when the context is present.
 - A client MAY apply them when it is absent, for example to Presentation 3.0 Manifests from a publisher known to follow them. Grouping by `id` is safe even then, because Specific Resources with the same URI are, by definition, the same resource.
 
 ## 3. Shared regions
@@ -93,17 +95,54 @@ A **keyed tag** is a TextualBody with `purpose` set to `tagging` and a `label`. 
 - A client SHOULD render a tagging body without a `label` as a plain tag showing its `value`.
 - A client MUST NOT treat a tagging body as the descriptive text of the Annotation.
 
-## 5. Provenance (informative)
+## 5. Images of a region
+
+Annotators often want to show a picture of the annotated place, such as a historical photograph of a building. The Web Annotation Data Model already allows an Annotation to have several bodies, and a body may be an Image. This extension only says how to read such a body. **It adds no terms.**
+
+```json
+{
+  "type": "Annotation",
+  "motivation": [ "commenting" ],
+  "body": [
+    { "type": "TextualBody", "value": "<p>353 Powell St (fish market)</p>", "format": "text/html", "label": { "ja": [ "スター魚肉店" ] } },
+    {
+      "id": "https://example.org/iiif/photo1/full/max/0/default.jpg",
+      "type": "Image",
+      "format": "image/jpeg",
+      "label": { "en": [ "Yamake's store, Powell Street (1938)" ] },
+      "service": [ { "id": "https://example.org/iiif/photo1", "type": "ImageService3", "profile": "level1" } ],
+      "homepage": [ { "id": "https://example.org/record/1", "type": "Text", "format": "text/html", "label": { "en": [ "Catalogue record" ] } } ]
+    }
+  ],
+  "target": { "...": "a Specific Resource as in §3" }
+}
+```
+
+### 5.1 Requirements for publishers
+
+- A picture of the region MUST be given as a body with `type` set to `Image` and `id` set to the image URI. It SHOULD NOT be given in `seeAlso`, which Presentation 4.0 defines for machine-readable descriptions, nor by a property that is not defined there, such as `source` on a `seeAlso` item.
+- The body SHOULD have a `label` (language map) that identifies the picture, such as its title and date.
+- When the image is served by a IIIF Image API service, the body SHOULD carry it in `service`, so that clients can request a thumbnail instead of the full image.
+- The page that describes the image at its holding institution SHOULD be given in `homepage` on the Image body.
+- The descriptive text SHOULD remain the first item of `body` (§4.1).
+
+### 5.2 Requirements for clients
+
+- A client SHOULD show the Image bodies of an Annotation as pictures together with the Annotation, for example as thumbnails in its list entry.
+- A client MUST NOT treat an Image body as the descriptive text or as a tag of the Annotation.
+- A client SHOULD use the image `service`, when present, to request a thumbnail, and SHOULD link the picture to its `homepage`, when present.
+
+## 6. Provenance (informative)
 
 When one region collects Annotations from different people or projects, users need to tell them apart. The Web Annotation Data Model already defines `creator` and `created` on an Annotation. Publishers SHOULD use them rather than `metadata`. This extension does not define anything further.
 
-## 6. Compatibility with Presentation 3.0
+## 7. Compatibility with Presentation 3.0
 
 In Presentation 3.0, and in the Web Annotation Data Model, `id` on a Specific Resource is optional. A Presentation 3.0 publisher that wants to use shared regions MUST therefore add `id` to the targets that share a region. All other rules above apply unchanged.
 
 Presentation 3.0 allows `motivation` to be a single string, following the Web Annotation Data Model. Presentation 4.0 requires an array.
 
-## 7. Example
+## 8. Example
 
 See [examples/manifest.json](../examples/manifest.json), a Presentation 4.0 Manifest for a 3D model of a globe. The annotation texts are illustrative. It contains:
 
@@ -111,7 +150,7 @@ See [examples/manifest.json](../examples/manifest.json), a Presentation 4.0 Mani
 - a polygon region given with a `WktSelector`;
 - an Annotation that uses no feature of this extension, which every client shows as usual.
 
-## 8. References
+## 9. References
 
 - IIIF Presentation API 4.0 (4.0.0-draft), Data Model: <https://iiif.io/api/presentation/4.0/model/>
 - IIIF Presentation API 3.0: <https://iiif.io/api/presentation/3.0/>
