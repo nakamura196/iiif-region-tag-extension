@@ -104,19 +104,54 @@
                 "name": "Example Annotator 1"
               },
               "created": "2026-09-20T10:00:00Z",
-              "body": {
-                "type": "TextualBody",
-                "format": "text/html",
-                "value": "<p>Example: this point is identified as the United Kingdom.</p>",
-                "label": {
-                  "ja": [
-                    "イギリス"
+              "body": [
+                {
+                  "type": "TextualBody",
+                  "format": "text/html",
+                  "value": "<p>Example: this point is identified as the United Kingdom.</p>",
+                  "label": {
+                    "ja": [
+                      "イギリス"
+                    ],
+                    "en": [
+                      "United Kingdom"
+                    ]
+                  }
+                },
+                {
+                  "id": "http://www.wikidata.org/entity/Q145",
+                  "type": "Dataset",
+                  "purpose": "identifying",
+                  "label": {
+                    "ja": [
+                      "イギリス"
+                    ],
+                    "en": [
+                      "United Kingdom"
+                    ]
+                  }
+                },
+                {
+                  "id": "https://en.wikipedia.org/wiki/United_Kingdom",
+                  "type": "Text",
+                  "format": "text/html",
+                  "language": [
+                    "en"
                   ],
-                  "en": [
-                    "United Kingdom"
-                  ]
+                  "purpose": "linking",
+                  "label": {
+                    "en": [
+                      "Wikipedia: United Kingdom"
+                    ]
+                  }
+                },
+                {
+                  "type": "TextualBody",
+                  "format": "text/plain",
+                  "purpose": "linking",
+                  "value": "Example reference without a web address (illustrative)."
                 }
-              },
+              ],
               "target": {
                 "id": "https://nakamura196.github.io/iiif-region-tag-extension/examples/manifest.json#region-uk",
                 "type": "SpecificResource",
